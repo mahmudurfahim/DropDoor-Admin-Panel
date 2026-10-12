@@ -7,7 +7,7 @@
 *{box-sizing:border-box}
 html,body{overflow-x:hidden}body{margin:0;font:14px/1.5 Manrope,system-ui,sans-serif;color:var(--ink);background:var(--bg)}img{max-width:100%}
 .app{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:100vh}
-aside{background:var(--side);color:#cfeff3;padding:20px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+aside{background:var(--side);color:#cfeff3;padding:20px 12px;position:sticky;top:0;align-self:start;height:100vh;display:flex;flex-direction:column}
 aside h3{margin:0 8px 20px;font-size:20px;font-weight:800;color:#fff}aside h3 span{color:var(--c)}
 nav a{display:block;padding:9px 12px;border-radius:8px;color:#cfeff3;cursor:pointer;margin-bottom:2px}
 nav a:hover{background:#0b4750}nav a.on{background:var(--c);color:#04282d;font-weight:600}
@@ -65,6 +65,8 @@ dialog label small{font-weight:400;color:var(--mut)}dialog textarea{resize:verti
 .hint{font-size:12px;color:var(--mut);margin:-4px 0 8px}
 input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .tile{background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}.tile:hover{border-color:var(--c)}button.tl{background:none;color:var(--ink);text-align:left;border:0;border-radius:0;padding:16px 16px 10px;margin:0;font-weight:400;flex:1;width:100%}button.tl:hover{background:#f3fcfd}button.tl b{display:block;font-size:15px}button.tl span{color:var(--mut);font-size:12px}.tf{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--line);background:#f7fcfd;font-size:12px;color:var(--mut)}.tf label{display:flex;align-items:center;gap:6px;margin:0;font-weight:600}.tf .pn{width:60px}.tf button{margin:0 0 0 4px;padding:3px 9px}
+.ic{display:block;width:44px;height:44px;object-fit:contain;margin-bottom:8px}
+.icp{display:flex;align-items:center;justify-content:center;width:96px;height:96px;border:1px dashed var(--line);border-radius:10px;background:#eef7f8;margin:6px 0}.icp img{max-width:100%;max-height:100%;object-fit:contain;display:block}
 </style></head>
 <body>
 <div id="login"><form id="lf">
@@ -238,19 +240,34 @@ const crumbs=(cat,sub)=>`<div class="crumb">${cat?`<button class="g" style="marg
 const posInput=(kind,x,min)=>`<input class="pn" type="number" inputmode="numeric" min="${min}" value="${x.position||""}" placeholder="-" title="Priority number (1 = first). If the number is taken, the others move down by one." onchange="setpos('${kind}',${x.id},this.value)">`;
 async function setpos(kind,id,v){const n=parseInt(v||0,10)||0;if(await run(()=>patch(`/admin/${kind}/${id}/`,{position:Math.max(0,n)}),"Priority saved"))go("products")}
 const HINT='<p class="hint">Priority: type a number (1 = shows first). If that number is already used, the item you changed takes it and the others move down by one. Empty = after the numbered ones.</p>';
+// sub category icon: uploaded here, shown in the app exactly as it is (own shape, transparency kept, nothing cropped; the server only shrinks it to fit 512 px)
+const iconUp=(id,f)=>{const fd=new FormData();fd.append("icon",f);return api(`/admin/subcategories/${id}/icon/`,{method:"POST",form:fd})};
+function ric(id){const s=cache.subs.find(x=>x.id==id),b=$("#icp"),r=$("#icr");if(!s||!b)return;
+ b.innerHTML=s.icon?`<img src="${esc(s.icon)}" alt="">`:'<span class="mt">No icon</span>';r.style.display=s.icon?"":"none"}
+async function iup(id){const f=$("#sif").files[0];if(!f)return;$("#sif").disabled=true;toast("Uploading icon…");
+ const s=await run(()=>iconUp(id,f),"Icon saved");$("#sif").value="";$("#sif").disabled=false;
+ if(s&&s!==true){const i=cache.subs.findIndex(x=>x.id==id);cache.subs[i]=s;dirty=true;ric(id)}}
+async function idel(id){if(!confirm("Remove this icon?"))return;
+ const s=await run(()=>del(`/admin/subcategories/${id}/icon/`),"Icon removed");
+ if(s&&s!==true){const i=cache.subs.findIndex(x=>x.id==id);cache.subs[i]=s;dirty=true;ric(id)}}
 function sform(id){const s=cache.subs.find(x=>x.id==id);if(!s)return;
  $("#dlg").innerHTML=`<h2>Edit sub category</h2><label>Category<select id="sc">${opts([["","Choose a category…"],...cache.cats.map(c=>[c.id,c.name])],s.category)}</select></label><label>Name<input id="sn" maxlength="60" value="${esc(s.name)}"></label><label>Priority number <small>(optional)</small><input id="sp" type="number" inputmode="numeric" min="0" value="${esc(s.position||"")}"></label>
- <div class="row"><button class="g" onclick="$('#dlg').close()">Cancel</button><button onclick="ssub(${id})">Save</button></div>`;$("#dlg").showModal()}
+ <label>Icon <small>(replaces the old one right away)</small></label><div class="icp" id="icp"></div>
+ <input id="sif" type="file" accept="image/*" onchange="iup(${id})"><button class="r" id="icr" style="margin-top:8px" onclick="idel(${id})">Remove icon</button>
+ <p class="cnt" style="margin:6px 0 0">The icon shows in the app exactly as you upload it (same shape, transparent background kept, nothing cropped). Use a PNG with a transparent background.</p>
+ <div class="row"><button class="g" onclick="$('#dlg').close()">Close</button><button onclick="ssub(${id})">Save</button></div>`;$("#dlg").showModal();ric(id)}
 async function ssub(id){const c=+$("#sc").value,n=$("#sn").value.trim();if(!c)return toast("Choose a category",1);if(!n)return toast("Enter a name",1);
  const b={name:n,category:c};if($("#sp").value!=="")b.position=parseInt($("#sp").value,10);
- if(await run(()=>patch(`/admin/subcategories/${id}/`,b),"Sub category saved")){$("#dlg").close();go("products")}}
+ if(await run(()=>patch(`/admin/subcategories/${id}/`,b),"Sub category saved")){dirty=false;$("#dlg").close();go("products")}}
 async function sadd(cat){const n=$("#an").value.trim();if(!n)return toast("Enter a sub category name",1);
- if(await run(()=>post("/admin/subcategories/",{name:n,category:cat}),"Sub category added"))go("products")}
+ const s=await run(()=>post("/admin/subcategories/",{name:n,category:cat}),"Sub category added");if(!s)return;
+ const f=$("#ai")&&$("#ai").files[0];if(f&&s!==true){const u=await run(()=>iconUp(s.id,f),"Icon saved");if(!u)toast("Sub category added, but the icon failed. Open Edit and add it again.",1)}
+ go("products")}
 async function sdel(id){if(!confirm("Delete this sub category?"))return;
  if(await run(()=>del(`/admin/subcategories/${id}/`),"Sub category deleted"))go("products")}
 const nProd=id=>cache.products.filter(p=>p.subcategory==id).length;
 const catTile=c=>`<div class="tile"><button class="tl" onclick="nav(${c.id},0)"><b>${esc(c.name)}</b><span>${cache.subs.filter(s=>s.category==c.id).length} sub categories · ${cache.products.filter(p=>p.category==c.id).length} products</span></button><div class="tf"><label>Priority ${posInput("categories",c,1)}</label></div></div>`;
-const subTile=x=>`<div class="tile"><button class="tl" onclick="${x.category?`nav(${x.category},${x.id})`:`sform(${x.id})`}"><b>${esc(x.name)}</b><span>${nProd(x.id)} products${x.category?"":" · choose a category (tap Edit)"}</span></button><div class="tf"><label>Priority ${posInput("subcategories",x,0)}</label><span><button class="g" onclick="sform(${x.id})">Edit</button><button class="r" onclick="sdel(${x.id})">Delete</button></span></div></div>`;
+const subTile=x=>`<div class="tile"><button class="tl" onclick="${x.category?`nav(${x.category},${x.id})`:`sform(${x.id})`}">${x.icon?`<img class="ic" src="${esc(x.icon)}" alt="" loading="lazy">`:""}<b>${esc(x.name)}</b><span>${nProd(x.id)} products${x.category?"":" · choose a category (tap Edit)"}</span></button><div class="tf"><label>Priority ${posInput("subcategories",x,0)}</label><span><button class="g" onclick="sform(${x.id})">Edit</button><button class="r" onclick="sdel(${x.id})">Delete</button></span></div></div>`;
 const optTxt=x=>x.size||x.color?`${x.size?`Size: ${esc(x.size)}`:""}${x.size&&x.color?"<br>":""}${x.color?`Color: ${esc(x.color)}`:""}`:"-";
 function prodTable(list,showCat){const H=["Priority","Product",...(showCat?["Category › Sub category"]:[]),"Supplier price","Stock","Options","Photos","Visible","Action"];
  return tbl(H,list.map(x=>`<tr><td>${posInput("products",x,0)}</td><td><div style="display:flex;gap:8px;align-items:flex-start">${x.photos[0]?`<img class="pt" src="${esc(x.photos[0].url)}" alt="" loading="lazy">`:""}<div>${esc(x.name)}<span class="sub" title="${esc(x.description)}">${x.description?short(x.description,60):'<span class="b w">no description</span>'}</span></div></div></td>${showCat?`<td>${esc(x.category_name||"-")} › ${esc(x.subcategory_name)}</td>`:""}<td>${money(x.base_price)}</td><td>${x.in_stock?badge("Active","In stock"):badge("Out","Out of stock")}</td><td>${optTxt(x)}</td><td>${x.photos.length}${x.photos.length<1?' <span class="b w">need 1</span>':""}</td><td>${x.active?badge("Active"):badge("Hidden")}</td><td><button class="g" onclick="pform(${x.id})">Edit</button><button class="g" onclick="ptog(${x.id})">${x.active?"Hide":"Show"}</button><button class="r" onclick="pdel(${x.id})">Delete</button></td></tr>`),"No products here yet.")}
@@ -290,7 +307,7 @@ async products(){const{c,s}=await catalog(),t=S.prod,cat=c.find(x=>x.id==t.cat);
  if(!cat){t.cat=0;t.sub=0;return `<h1>Products</h1><div class="top"><input type="search" aria-label="Search all products" placeholder="Search all products (name, description, category, size, color)" value="${esc(F.gq)}" style="min-width:320px" oninput="F.gq=this.value;renderGlobal()"></div><p class="empty" style="padding:0 0 6px">Choose a category.</p>${HINT}<div id="pt"></div>`}
  const sub=s.find(x=>x.id==t.sub&&x.category==cat.id);
  if(!sub){t.sub=0;const subs=s.filter(x=>x.category==cat.id);
-  return `<h1>${esc(cat.name)}</h1>${crumbs(cat,null)}<div class="top"><input id="an" maxlength="60" placeholder="New sub category in ${esc(cat.name)}" aria-label="Sub category name" style="min-width:260px" onkeydown="if(event.key=='Enter')sadd(${cat.id})"><button onclick="sadd(${cat.id})">Add sub category</button></div>${HINT}${subs.length?`<div class="tiles">${J(subs.map(subTile))}</div>`:'<p class="empty">No sub categories yet. Add the first one above.</p>'}`}
+  return `<h1>${esc(cat.name)}</h1>${crumbs(cat,null)}<div class="top"><input id="an" maxlength="60" placeholder="New sub category in ${esc(cat.name)}" aria-label="Sub category name" style="min-width:260px" onkeydown="if(event.key=='Enter')sadd(${cat.id})"><input id="ai" type="file" accept="image/*" aria-label="Sub category icon (optional)" title="Icon (optional)" style="max-width:230px"><button onclick="sadd(${cat.id})">Add sub category</button></div>${HINT}${subs.length?`<div class="tiles">${J(subs.map(subTile))}</div>`:'<p class="empty">No sub categories yet. Add the first one above.</p>'}`}
  return `<h1>${esc(sub.name)}</h1>${crumbs(cat,sub)}<div class="top"><button onclick="pform(0,${sub.id})">Add product</button><input type="search" aria-label="Search products" placeholder="Search name, description, size, color" value="${esc(F.sq)}" oninput="F.sq=this.value;renderSub()"><select aria-label="Visibility" onchange="F.sv=this.value;renderSub()">${opts([["All","Visible and hidden"],["1","Visible"],["0","Hidden"]],F.sv)}</select><select aria-label="Stock" onchange="F.sk=this.value;renderSub()">${opts([["All","Any stock"],["1","In stock"],["0","Out of stock"]],F.sk)}</select></div>${HINT}<div id="pt"></div>`},
 async resellers(){cache.resellers=await api("/admin/resellers/");
  return `<h1>Resellers</h1><div class="top"><select aria-label="Filter by status" onchange="F.rs=this.value;renderResellers()">${opts(["All","pending","approved","blocked"].map(s=>[s,s=="All"?"All statuses":s]),F.rs)}</select><input type="search" aria-label="Search resellers" placeholder="Search name, phone, shop" value="${esc(F.rq)}" oninput="F.rq=this.value;renderResellers()"></div><div id="rt"></div>`},
