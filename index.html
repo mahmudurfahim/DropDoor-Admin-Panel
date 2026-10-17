@@ -244,6 +244,31 @@ const crumbs=(cat,sub)=>`<div class="crumb">${cat?`<button class="g" style="marg
 const posInput=(kind,x,min)=>`<input class="pn" type="number" inputmode="numeric" min="${min}" value="${x.position||""}" placeholder="-" title="Priority number (1 = first). If the number is taken, the others move down by one." onchange="setpos('${kind}',${x.id},this.value)">`;
 async function setpos(kind,id,v){const n=parseInt(v||0,10)||0;if(await run(()=>patch(`/admin/${kind}/${id}/`,{position:Math.max(0,n)}),"Priority saved"))go("products")}
 const HINT='<p class="hint">Priority: type a number (1 = shows first). If that number is already used, the item you changed takes it and the others move down by one. Empty = after the numbered ones.</p>';
+// category: add / rename / priority / delete, and its icon (same rules as a sub category icon: own shape, transparency kept, shrunk to fit 512 px)
+const ciconUp=(id,f)=>{const fd=new FormData();fd.append("icon",f);return api(`/admin/categories/${id}/icon/`,{method:"POST",form:fd})};
+function cric(id){const c=cache.cats.find(x=>x.id==id),b=$("#icp"),r=$("#icr");if(!c||!b)return;
+ b.innerHTML=c.icon?`<img src="${esc(c.icon)}" alt="">`:'<span class="mt">No icon</span>';r.style.display=c.icon?"":"none"}
+async function ciup(id){const f=$("#cif").files[0];if(!f)return;$("#cif").disabled=true;toast("Uploading icon…");
+ const c=await run(()=>ciconUp(id,f),"Icon saved");$("#cif").value="";$("#cif").disabled=false;
+ if(c&&c!==true){const i=cache.cats.findIndex(x=>x.id==id);cache.cats[i]=c;dirty=true;cric(id)}}
+async function cidel(id){if(!confirm("Remove this icon?"))return;
+ const c=await run(()=>del(`/admin/categories/${id}/icon/`),"Icon removed");
+ if(c&&c!==true){const i=cache.cats.findIndex(x=>x.id==id);cache.cats[i]=c;dirty=true;cric(id)}}
+function cform(id){const c=cache.cats.find(x=>x.id==id);if(!c)return;
+ $("#dlg").innerHTML=`<h2>Edit category</h2><label>Name<input id="cn" maxlength="60" value="${esc(c.name)}"></label><label>Priority number <small>(optional)</small><input id="cp" type="number" inputmode="numeric" min="1" value="${esc(c.position||"")}"></label>
+ <label>Icon <small>(replaces the old one right away)</small></label><div class="icp" id="icp"></div>
+ <input id="cif" type="file" accept="image/*" onchange="ciup(${id})"><button class="r" id="icr" style="margin-top:8px" onclick="cidel(${id})">Remove icon</button>
+ <p class="cnt" style="margin:6px 0 0">The icon shows in the app exactly as you upload it (same shape, transparent background kept, nothing cropped). Use a PNG with a transparent background. Without an icon the app keeps its default picture.</p>
+ <div class="row"><button class="g" onclick="$('#dlg').close()">Close</button><button onclick="csave(${id})">Save</button></div>`;$("#dlg").showModal();cric(id)}
+async function csave(id){const n=$("#cn").value.trim();if(!n)return toast("Enter a name",1);
+ const b={name:n};if($("#cp").value!=="")b.position=parseInt($("#cp").value,10);
+ if(await run(()=>patch(`/admin/categories/${id}/`,b),"Category saved")){dirty=false;$("#dlg").close();go("products")}}
+async function cadd(){const n=$("#cnn").value.trim();if(!n)return toast("Enter a category name",1);
+ const c=await run(()=>post("/admin/categories/",{name:n}),"Category added");if(!c)return;
+ const f=$("#cni")&&$("#cni").files[0];if(f&&c!==true){const u=await run(()=>ciconUp(c.id,f),"Icon saved");if(!u)toast("Category added, but the icon failed. Open Edit and add it again.",1)}
+ go("products")}
+async function cdel(id){const c=cache.cats.find(x=>x.id==id);if(!confirm(`Delete the category "${c?c.name:""}"?\n\nIt must have no sub categories.`))return;
+ if(await run(()=>del(`/admin/categories/${id}/`),"Category deleted"))go("products")}
 // sub category icon: uploaded here, shown in the app exactly as it is (own shape, transparency kept, nothing cropped; the server only shrinks it to fit 512 px)
 const iconUp=(id,f)=>{const fd=new FormData();fd.append("icon",f);return api(`/admin/subcategories/${id}/icon/`,{method:"POST",form:fd})};
 function ric(id){const s=cache.subs.find(x=>x.id==id),b=$("#icp"),r=$("#icr");if(!s||!b)return;
@@ -270,7 +295,7 @@ async function sadd(cat){const n=$("#an").value.trim();if(!n)return toast("Enter
 async function sdel(id){if(!confirm("Delete this sub category?"))return;
  if(await run(()=>del(`/admin/subcategories/${id}/`),"Sub category deleted"))go("products")}
 const nProd=id=>cache.products.filter(p=>p.subcategory==id).length;
-const catTile=c=>`<div class="tile"><button class="tl" onclick="nav(${c.id},0)"><b>${esc(c.name)}</b><span>${cache.subs.filter(s=>s.category==c.id).length} sub categories · ${cache.products.filter(p=>p.category==c.id).length} products</span></button><div class="tf"><label>Priority ${posInput("categories",c,1)}</label></div></div>`;
+const catTile=c=>`<div class="tile"><button class="tl" onclick="nav(${c.id},0)">${c.icon?`<img class="ic" src="${esc(c.icon)}" alt="" loading="lazy">`:""}<b>${esc(c.name)}</b><span>${cache.subs.filter(s=>s.category==c.id).length} sub categories · ${cache.products.filter(p=>p.category==c.id).length} products</span></button><div class="tf"><label>Priority ${posInput("categories",c,1)}</label><span><button class="g" onclick="cform(${c.id})">Edit</button><button class="r" onclick="cdel(${c.id})">Delete</button></span></div></div>`;
 const subTile=x=>`<div class="tile"><button class="tl" onclick="${x.category?`nav(${x.category},${x.id})`:`sform(${x.id})`}">${x.icon?`<img class="ic" src="${esc(x.icon)}" alt="" loading="lazy">`:""}<b>${esc(x.name)}</b><span>${nProd(x.id)} products${x.category?"":" · choose a category (tap Edit)"}</span></button><div class="tf"><label>Priority ${posInput("subcategories",x,0)}</label><span><button class="g" onclick="sform(${x.id})">Edit</button><button class="r" onclick="sdel(${x.id})">Delete</button></span></div></div>`;
 const optTxt=x=>x.size||x.color?`${x.size?`Size: ${esc(x.size)}`:""}${x.size&&x.color?"<br>":""}${x.color?`Color: ${esc(x.color)}`:""}`:"-";
 function prodTable(list,showCat){const H=["Priority","Product",...(showCat?["Category › Sub category"]:[]),"Supplier price","Stock","Options","Photos","Visible","Action"];
@@ -308,7 +333,7 @@ async dash(){const d=await api("/admin/dashboard/"),c=d.orders,mx=Math.max(...ST
  return `<h1>Dashboard</h1><div class="stats"><div><b>${d.resellers_total??0}</b>total resellers</div><div><b>${d.orders_total??0}</b>total orders</div><div><b>${c.Pending||0}</b>orders to confirm</div><div><b>${d.resellers_pending}</b>resellers to approve</div><div><b>${d.withdraws_pending}</b>withdrawals to review</div><div><b class="${d.reseller_balances<0?"neg":""}">${money(d.reseller_balances)}</b>reseller balances</div></div><h2>Orders by status</h2>${J(ST.map(s=>`<div class="bar"><span>${s}</span><div><i style="width:${(c[s]||0)/mx*100}%"></i></div><em>${c[s]||0}</em></div>`))}`},
 async orders(){return `<h1>Orders</h1><div class="top"><select aria-label="Filter by status" onchange="F.os=this.value;loadOrders()">${opts(["All",...ST].map(s=>[s,s]),F.os)}</select><select aria-label="Filter by area" onchange="F.oz=this.value;loadOrders()">${opts([["","All areas"],...Object.entries(ZONE)],F.oz)}</select><input type="search" aria-label="Search orders" placeholder="Search code, customer, phone, reseller, note" value="${esc(F.oq)}" oninput="F.oq=this.value;oqs()"><button class="g" onclick="loadOrders()">Refresh</button></div><div id="ot"></div>`},
 async products(){const{c,s}=await catalog(),t=S.prod,cat=c.find(x=>x.id==t.cat);
- if(!cat){t.cat=0;t.sub=0;return `<h1>Products</h1><div class="top"><input type="search" aria-label="Search all products" placeholder="Search all products (code, name, description, category, size, color)" value="${esc(F.gq)}" style="min-width:320px" oninput="F.gq=this.value;renderGlobal()"></div><p class="empty" style="padding:0 0 6px">Choose a category.</p>${HINT}<div id="pt"></div>`}
+ if(!cat){t.cat=0;t.sub=0;return `<h1>Products</h1><div class="top"><input type="search" aria-label="Search all products" placeholder="Search all products (code, name, description, category, size, color)" value="${esc(F.gq)}" style="min-width:320px" oninput="F.gq=this.value;renderGlobal()"></div><div class="top"><input id="cnn" maxlength="60" placeholder="New category name" aria-label="Category name" style="min-width:260px" onkeydown="if(event.key=='Enter')cadd()"><input id="cni" type="file" accept="image/*" aria-label="Category icon (optional)" title="Icon (optional)" style="max-width:230px"><button onclick="cadd()">Add category</button></div><p class="empty" style="padding:0 0 6px">Choose a category.</p>${HINT}<div id="pt"></div>`}
  const sub=s.find(x=>x.id==t.sub&&x.category==cat.id);
  if(!sub){t.sub=0;const subs=s.filter(x=>x.category==cat.id);
   return `<h1>${esc(cat.name)}</h1>${crumbs(cat,null)}<div class="top"><input id="an" maxlength="60" placeholder="New sub category in ${esc(cat.name)}" aria-label="Sub category name" style="min-width:260px" onkeydown="if(event.key=='Enter')sadd(${cat.id})"><input id="ai" type="file" accept="image/*" aria-label="Sub category icon (optional)" title="Icon (optional)" style="max-width:230px"><button onclick="sadd(${cat.id})">Add sub category</button></div>${HINT}${subs.length?`<div class="tiles">${J(subs.map(subTile))}</div>`:'<p class="empty">No sub categories yet. Add the first one above.</p>'}`}
