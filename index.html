@@ -49,12 +49,12 @@ dialog label{display:block;margin:10px 0;font-weight:600}dialog h2{margin-top:0}
 .photos{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .top input[type=search]{min-width:240px}.cnt{color:var(--mut);font-size:12px;margin:-4px 0 8px}
 dialog label small{font-weight:400;color:var(--mut)}dialog textarea{resize:vertical}
-.ol{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;max-width:920px}
-.oc{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
-.oh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:11px 14px;background:#f7fcfd;border-bottom:1px solid var(--line)}
+.ol{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;max-width:920px}
+.oc{background:#e6f1f4;border:1px solid #b3d2d9;border-left:6px solid var(--st,#00bcd4);box-shadow:0 2px 10px rgba(6,53,60,.12);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.oh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:11px 14px;background:#d3e7ec;border-bottom:1px solid #b3d2d9}
 .oh b{font-size:16px}.oh .dt{margin-left:auto;color:var(--mut);font-size:12px}
 .chip{background:#e3f1f3;color:var(--cd);border-radius:99px;padding:2px 9px;font-size:12px;font-weight:600}
-.cu{margin:10px 14px 4px;padding:9px 12px;background:#f7fcfd;border:1px solid var(--line);border-radius:10px;display:grid;grid-template-columns:68px minmax(0,1fr);gap:3px 10px;align-items:baseline}.cu .k{color:var(--mut);font-size:12px}.cu b{font-size:15px}.cu span{overflow-wrap:anywhere}
+.cu{margin:10px 14px 4px;padding:9px 12px;background:#fff;border:1px solid #c5dde2;border-radius:10px;display:grid;grid-template-columns:68px minmax(0,1fr);gap:3px 10px;align-items:baseline}.cu .k{color:var(--mut);font-size:12px}.cu b{font-size:15px}.cu span{overflow-wrap:anywhere}
 .oid small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);font-weight:600;line-height:1.2}.oid b{font-size:17px}.rs{padding:0 14px 6px;color:var(--mut);font-size:12px}
 .onote{margin:4px 14px 6px;background:#fff8e1;border-left:3px solid #e0a800;padding:6px 10px;border-radius:6px;font-size:13px}
 .its{padding:2px 14px}.ln{display:grid;grid-template-columns:56px minmax(0,1fr) auto;align-items:start;gap:2px 12px;padding:10px 0;border-bottom:1px dashed var(--line)}.oi{width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid var(--line);background:#f1f5f6;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mut);font-size:10px}img.oi{display:block}.qb{display:inline-block;background:#fff3d6;color:#8a5a00;border-radius:6px;padding:0 8px;font-weight:700;margin-bottom:2px}.note.auto{border-left-color:#9fb4b8;background:#f4f6f7}.note .src{font-weight:600}.ln:last-child{border:0}
@@ -136,7 +136,8 @@ const tbl=(h,rows,empty)=>rows.length?`<div class="tw"><table><thead><tr>${J(h.m
 const itemsTxt=o=>o.items.map(i=>`${esc(i.product)} ×${i.qty}`).join(", ");
 const imgSrc=u=>u?(u[0]=="/"?HOST+u:u):"";
 const lineHtml=i=>{const src=imgSrc(i.image);return `<div class="ln">${src?`<a href="${esc(src)}" target="_blank" rel="noopener"><img class="oi" src="${esc(src)}" alt="" loading="lazy"></a>`:`<div class="oi">No photo</div>`}<div><b>${esc(i.product||"(deleted product)")}</b>${i.code?` <span class="chip">${esc(i.code)}</span>`:""}${i.category||i.subcategory?`<div class="mt">${esc(i.category||"-")} › ${esc(i.subcategory||"-")}</div>`:""}${i.size||i.color?`<div>${i.size?`<span class="tag">Size: ${esc(i.size)}</span>`:""}${i.color?`<span class="tag c">Color: ${esc(i.color)}</span>`:""}</div>`:""}</div><div class="lp"><span class="qb">× ${i.qty}</span><div>${money(i.sell*i.qty)}</div><div class="mt">${money(i.sell)} each</div></div></div>`};
-function orderCard(o){return `<div class="oc"><div class="oh"><span class="oid"><small>Order ID</small><b>${esc(o.code)}</b></span>${badge(o.status)}<span class="chip">${esc(ZONE[o.zone]||o.zone)}</span><span class="dt">${dt(o.created)}</span></div>
+const ST_COL={Pending:"#e0a800",Confirmed:"#00bcd4",Shipped:"#3b7be0",Delivered:"#17855c",Cancelled:"#c93b3b",Returned:"#8a4fc9",NeedsReview:"#e07b00"};
+function orderCard(o){return `<div class="oc" style="--st:${ST_COL[o.status]||"#00bcd4"}"><div class="oh"><span class="oid"><small>Order ID</small><b>${esc(o.code)}</b></span>${badge(o.status)}<span class="chip">${esc(ZONE[o.zone]||o.zone)}</span><span class="dt">${dt(o.created)}</span></div>
 <div class="cu"><span class="k">Customer</span><b>${esc(o.customer)}</b><span class="k">Phone</span><span>${esc(o.phone)}</span><span class="k">Address</span><span>${esc(o.address)}</span></div>
 ${o.note?`<div class="onote"><b>Customer note:</b> ${esc(o.note)}</div>`:""}<div class="rs">Reseller: <b>${esc(o.reseller)}</b></div>
 <div class="its">${J(o.items.map(lineHtml))}</div>
