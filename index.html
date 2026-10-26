@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DropNext Admin</title>
+<title>DropDoor Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--c:#00bcd4;--cd:#00838f;--ink:#0b2f35;--bg:#f2fafb;--line:#d5eaed;--side:#06353c;--bad:#c93b3b;--ok:#17855c;--warn:#a87400;--mut:#4c7279}
@@ -71,11 +71,11 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
 </style></head>
 <body>
 <div id="login"><form id="lf">
-<h1>DropNext Admin</h1><div id="lerr" role="alert"></div>
+<h1>DropDoor Admin</h1><div id="lerr" role="alert"></div>
 <input id="lu" placeholder="Admin username" autocomplete="username" aria-label="Username" required>
 <input id="lp" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" required>
 <button id="lb" style="width:100%;padding:9px">Log in</button></form></div>
-<div class="app"><aside><h3>Drop<span>Next</span></h3><nav>
+<div class="app"><aside><h3>Drop<span>Door</span></h3><nav>
 <a data-v="dash">Dashboard</a><a data-v="orders">Orders</a><a data-v="products">Products</a>
 <a data-v="resellers">Resellers</a><a data-v="wd">Withdrawals</a><a data-v="notices">Notices</a><a data-v="settings">Settings</a></nav>
 <div class="side-b"><a id="dj" target="_blank" rel="noopener">Django admin</a><a id="lo">Log out</a></div></aside>
@@ -83,7 +83,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
 <dialog id="dlg"></dialog><div id="toast"></div>
 <script>
 // Set this to your Render service. Everything below uses it.
-const HOST="https://dropnext-api.onrender.com",API=HOST+"/api";
+const HOST="https://dropdoor-api.onrender.com",API=HOST+"/api";
 const ZONE={inside_dhaka:"Inside Dhaka",sub_dhaka:"Sub Dhaka",outside_dhaka:"Outside Dhaka"};
 const ST=["Pending","Confirmed","Shipped","Delivered","Cancelled","Returned","NeedsReview"];
 const $=s=>document.querySelector(s),J=a=>a.join("");
@@ -113,7 +113,7 @@ async function api(path,o){
  if(r.status==401){logout();throw Error("Session expired. Log in again.")}
  if(!r.ok)throw Error(msg(d,r));return d}
 const toast=(t,bad)=>{const e=$("#toast");e.textContent=t;e.className="show"+(bad?" bad":"");clearTimeout(toast.t);toast.t=setTimeout(()=>e.className="",bad?4500:2200)};
-async function run(fn,ok){try{const x=await fn();if(ok)toast(ok);return x===undefined||x===null?true:x}catch(e){toast(e.message==="Failed to fetch"?"Cannot reach the server (it may be waking up, or CORS blocks this page). Try again.":e.message,1);return null}}
+async function run(fn,ok){try{const x=await fn();if(ok)toast(ok);return x===undefined||x===null?true:x}catch(e){toast(e.message==="Failed to fetch"?"Cannot reach the server. Check your internet connection and that CORS_ORIGINS includes this page.":e.message,1);return null}}
 const post=(p,b)=>api(p,{method:"POST",body:b}),patch=(p,b)=>api(p,{method:"PATCH",body:b}),del=p=>api(p,{method:"DELETE"});
 
 // ---------- auth ----------
@@ -367,7 +367,7 @@ window.addEventListener("popstate",()=>{if(!store.get("at"))return;const d=$("#d
 async function go(v){view=v;const hh=hashOf();if(hh!==location.hash){if(firstGo)history.replaceState(null,"",hh);else history.pushState(null,"",hh)}firstGo=false;
  document.querySelectorAll("nav a").forEach(a=>a.classList.toggle("on",a.dataset.v==v));
  const m=$("main");m.innerHTML='<p class="load">Loading…</p>';
- try{const h=await V[v]();if(view==v){m.innerHTML=h;if(AFTER[v])AFTER[v]()}}catch(e){if(view==v)m.innerHTML=`<div class="err">${esc(e.message==="Failed to fetch"?"Cannot reach the server. It may be waking up (free Render plan), or CORS is blocking this page.":e.message)}<br><button style="margin-top:8px" onclick="go('${v}')">Try again</button></div>`}}
+ try{const h=await V[v]();if(view==v){m.innerHTML=h;if(AFTER[v])AFTER[v]()}}catch(e){if(view==v)m.innerHTML=`<div class="err">${esc(e.message==="Failed to fetch"?"Cannot reach the server. Check your internet connection and that CORS_ORIGINS includes this page.":e.message)}<br><button style="margin-top:8px" onclick="go('${v}')">Try again</button></div>`}}
 async function ssave(){const b={delivery_inside:$("#s1").value,delivery_sub:$("#s4").value,delivery_outside:$("#s5").value,min_withdraw:$("#s2").value,hold_days:$("#s3").value};
  if(await run(()=>post("/admin/settings/",b),"Settings saved"))go("settings")}
 
