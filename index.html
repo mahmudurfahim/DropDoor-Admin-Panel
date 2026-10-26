@@ -78,7 +78,7 @@ input[type=number]{-moz-appearance:textfield;appearance:textfield}input[type=num
 <div class="app"><aside><h3>Drop<span>Door</span></h3><nav>
 <a data-v="dash">Dashboard</a><a data-v="orders">Orders</a><a data-v="products">Products</a>
 <a data-v="resellers">Resellers</a><a data-v="wd">Withdrawals</a><a data-v="notices">Notices</a><a data-v="settings">Settings</a></nav>
-<div class="side-b"><a id="dj" target="_blank" rel="noopener">Django admin</a><a id="lo">Log out</a></div></aside>
+<div class="side-b"><a id="lo">Log out</a></div></aside>
 <main></main></div>
 <dialog id="dlg"></dialog><div id="toast"></div>
 <script>
@@ -117,7 +117,7 @@ async function run(fn,ok){try{const x=await fn();if(ok)toast(ok);return x===unde
 const post=(p,b)=>api(p,{method:"POST",body:b}),patch=(p,b)=>api(p,{method:"PATCH",body:b}),del=p=>api(p,{method:"DELETE"});
 
 // ---------- auth ----------
-$("#dj").href=HOST+"/admin/";
+
 $("#lf").onsubmit=async e=>{e.preventDefault();const b=$("#lb");b.disabled=1;b.textContent="Logging in…";$("#lerr").textContent="";
  try{const t=await raw("/auth/login/",{method:"POST",body:{username:$("#lu").value.trim(),password:$("#lp").value}});
   if(!t.r.ok)throw Error(t.r.status==401?"Wrong username or password":msg(t.d,t.r));
