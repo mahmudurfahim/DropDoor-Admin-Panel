@@ -118,7 +118,7 @@ const post=(p,b)=>api(p,{method:"POST",body:b}),patch=(p,b)=>api(p,{method:"PATC
 
 // ---------- auth ----------
 $("#dj").href=HOST+"/admin/";
-$("#lf").onsubmit=async e=>{e.preventDefault();const b=$("#lb");b.disabled=1;b.textContent="Logging in… (server may take ~50s to wake)";$("#lerr").textContent="";
+$("#lf").onsubmit=async e=>{e.preventDefault();const b=$("#lb");b.disabled=1;b.textContent="Logging in…";$("#lerr").textContent="";
  try{const t=await raw("/auth/login/",{method:"POST",body:{username:$("#lu").value.trim(),password:$("#lp").value}});
   if(!t.r.ok)throw Error(t.r.status==401?"Wrong username or password":msg(t.d,t.r));
   const m=await raw("/me/",{},t.d.access);if(!m.d||!m.d.is_admin)throw Error("This account is not an admin");
