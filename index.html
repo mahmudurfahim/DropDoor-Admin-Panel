@@ -201,7 +201,7 @@ function pform(id,preSub){const p=cache.products.find(x=>x.id==id)||{name:"",des
  <div class="two"><label>Supplier price (৳)<input id="fb" type="number" inputmode="numeric" min="1" value="${esc(p.base_price)}"></label><label>Stock<select id="fs">${opts([["1","In stock"],["0","Out of stock"]],p.in_stock?"1":"0")}</select></label></div>
  <div class="two"><label>Size <small>(optional)</small><input id="fz" maxlength="100" placeholder="e.g. M, L, XL" value="${esc(p.size)}"></label><label>Color <small>(optional)</small><input id="fk" maxlength="100" placeholder="e.g. Black, White" value="${esc(p.color)}"></label></div>
  <p class="hint">Separate options with commas. Every option becomes a choice the reseller must pick one of. Leave empty if there is nothing to choose.</p>
- <label>YouTube link <small>(optional)</small><input id="fv" type="url" value="${esc(p.video_url)}" placeholder="https://www.youtube.com/watch?v=..."></label>
+ <label>Video link <small>(optional, any link: YouTube, Facebook, Google Drive...)</small><input id="fv" type="url" maxlength="500" value="${esc(p.video_url)}" placeholder="https://..."></label>
  <label>Priority number <small>(optional, 1 = first inside its sub category; if the number is taken, the others move down by one)</small><input id="fp" type="number" inputmode="numeric" min="0" value="${esc(p.position||"")}"></label>
  <label><input id="fa" type="checkbox" style="width:auto" ${p.active?"checked":""}> Visible to resellers</label>
  <label>Photos <small id="pc"></small></label><div class="photos" id="ph"></div>
