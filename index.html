@@ -314,19 +314,31 @@ const AFTER_SUB=()=>{if(st().sub)renderSub();else renderGlobal()};
 
 // ---------- resellers / withdrawals (filtered in the browser) ----------
 function renderResellers(){const l=cache.resellers.filter(x=>(F.rs=="All"||x.status==F.rs)&&has(F.rq,x.name,x.phone,x.shop_name,x.dropship_id,x.referred_by,x.referred_by_name)),box=$("#rt");if(!box)return;
- box.innerHTML=`<p class="cnt">${l.length} of ${cache.resellers.length}</p>`+tbl(["Name","Phone","Dropship ID","Shop","Verified","Status","Balance","Referred by","Action"],l.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td><b>${esc(x.dropship_id)}</b>${x.referral_count?`<span class="sub">Referred ${x.referral_count}</span>`:""}</td><td>${esc(x.shop_name)}${x.shop_link?`<span class="sub">${/^https?:\/\//i.test(x.shop_link)?`<a class="lk" href="${esc(x.shop_link)}" target="_blank" rel="noopener noreferrer">${esc(x.shop_link)}</a>`:esc(x.shop_link)}</span>`:""}</td><td>${x.verified?"Yes":"No"}</td><td>${badge(x.status)}</td><td class="${x.balance<0?"neg":""}">${money(x.balance)} <button class="g" onclick="ebal(${x.id})">Edit</button></td><td>${x.referred_by?`${esc(x.referred_by_name)}<span class="sub">${esc(x.referred_by)}</span>`:"-"} <button class="g" onclick="eref(${x.id})">Edit</button></td><td>${x.status=="pending"?`<button onclick="rst(${x.id},'approved')">Approve</button><button class="r" onclick="rst(${x.id},'blocked')">Reject</button>`:x.status=="approved"?`<button class="r" onclick="rst(${x.id},'blocked')">Block</button>`:`<button class="g" onclick="rst(${x.id},'approved')">Unblock</button>`}</td></tr>`),"No resellers match.")}
+ box.innerHTML=`<p class="cnt">${l.length} of ${cache.resellers.length}</p>`+tbl(["Name","Phone","Dropship ID","Shop","Verified","Status","Balance","Referred by","Action"],l.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td><b>${esc(x.dropship_id)}</b>${x.referral_count?`<span class="sub">Referred ${x.referral_count}</span>`:""}</td><td>${esc(x.shop_name)}${x.shop_link?`<span class="sub">${/^https?:\/\//i.test(x.shop_link)?`<a class="lk" href="${esc(x.shop_link)}" target="_blank" rel="noopener noreferrer">${esc(x.shop_link)}</a>`:esc(x.shop_link)}</span>`:""}</td><td>${x.verified?"Yes":"No"}</td><td>${badge(x.status)}</td><td class="${x.balance<0?"neg":""}">${money(x.balance)} </td><td>${x.referred_by?`${esc(x.referred_by_name)}<span class="sub">${esc(x.referred_by)}</span>`:"-"}</td><td><button class="g" onclick="rform(${x.id})">Edit</button>${x.status=="pending"?`<button onclick="rst(${x.id},'approved')">Approve</button><button class="r" onclick="rst(${x.id},'blocked')">Reject</button>`:x.status=="approved"?`<button class="r" onclick="rst(${x.id},'blocked')">Block</button>`:`<button class="g" onclick="rst(${x.id},'approved')">Unblock</button>`}</td></tr>`),"No resellers match.")}
 function renderWd(){const l=cache.wd.filter(x=>(F.ws=="All"||x.status==F.ws)&&has(F.wq,x.reseller,x.phone,x.account)),box=$("#wt");if(!box)return;
  box.innerHTML=`<p class="cnt">${l.length} of ${cache.wd.length}</p>`+tbl(["Reseller","Balance at request","Current balance","Amount","Send to","Status","Date","Action"],l.map(x=>`<tr><td>${esc(x.reseller)}<span class="sub">${esc(x.phone)}</span></td><td>${x.balance_before==null?"-":money(x.balance_before)}</td><td class="${x.balance<0?"neg":""}"><b>${money(x.balance)}</b></td><td>${money(x.amount)}</td><td>${esc(x.account)}</td><td>${badge(x.status)}</td><td>${dt(x.created)}</td><td>${x.status=="Pending"?`<button onclick="wst(${x.id},'paid')">Mark as paid</button><button class="r" onclick="wst(${x.id},'reject')">Reject</button>`:"-"}</td></tr>`),"No withdrawals match.")}
-async function ebal(id){const x=cache.resellers.find(r=>r.id==id);if(!x)return;
- const v=prompt(`Set the new balance for ${x.name} (${x.phone}).\nCurrent balance: ${x.balance}`,x.balance);if(v===null)return;
- const n=parseInt(String(v).trim(),10);if(!/^-?\d+$/.test(String(v).trim())||isNaN(n)){toast("Enter a whole number",1);return}
- if(n==x.balance){toast("The balance is already that amount",1);return}
- const note=prompt("Reason (optional, up to 20 characters, shown in the ledger):","")||"";
- if(!confirm(`Change ${x.name}'s balance from ${money(x.balance)} to ${money(n)} (${n-x.balance>0?"+":""}${n-x.balance})?`))return;
- if(await run(()=>post(`/admin/resellers/${id}/balance/`,{balance:n,note:note.trim().slice(0,20)}),"Balance updated"))go("resellers")}
-async function eref(id){const x=cache.resellers.find(r=>r.id==id);if(!x)return;
- const v=prompt(`Who referred ${x.name} (${x.dropship_id})?\nType the referrer's Dropship ID, for example DDR1001. Leave empty for nobody.\nBonuses already paid stay as they are.`,x.referred_by||"");if(v===null)return;
- if(await run(()=>post(`/admin/resellers/${id}/referrer/`,{referrer:v.trim()}),"Referrer updated"))go("resellers")}
+function rform(id){const x=cache.resellers.find(r=>r.id==id);if(!x)return;
+ $("#dlg").innerHTML=`<h2>Edit reseller <span class="chip">${esc(x.dropship_id)}</span></h2>
+ <label>Name<input id="rn" maxlength="150" value="${esc(x.name)}"></label>
+ <label>Phone (also the login name)<input id="rp" inputmode="numeric" maxlength="11" value="${esc(x.phone)}"></label>
+ <label>Shop / page name (not a link)<input id="rs" maxlength="100" value="${esc(x.shop_name)}"></label>
+ <label>Shop address / page link (optional)<input id="rl" maxlength="300" value="${esc(x.shop_link)}"></label>
+ <label>Address<input id="ra" maxlength="300" value="${esc(x.address)}"></label>
+ <label>Status<select id="rt2">${opts([["pending","Pending"],["approved","Approved"],["blocked","Blocked"]],x.status)}</select></label>
+ <label><input id="rv" type="checkbox" style="width:auto" ${x.verified?"checked":""}> Phone verified</label>
+ <label>Referred by (Dropship ID, empty = nobody)<input id="rr" maxlength="14" placeholder="DDR1001" value="${esc(x.referred_by)}"></label>
+ <label>Balance (৳)<input id="rb" type="number" inputmode="numeric" value="${x.balance}"></label>
+ <label>Balance change reason (optional, up to 20 characters)<input id="rbn" maxlength="20"></label>
+ <label>New password (leave empty to keep the old one)<input id="rw" type="text" autocomplete="off" placeholder="6+ characters"></label>
+ <p class="hint">Dropship ID <b>${esc(x.dropship_id)}</b> is automatic and cannot be changed.</p>
+ <div class="row"><button class="g" onclick="$('#dlg').close()">Cancel</button><button onclick="rsave(${id})">Save reseller</button></div>`;$("#dlg").showModal()}
+async function rsave(id){const x=cache.resellers.find(r=>r.id==id);if(!x)return;
+ const b={name:$("#rn").value.trim(),phone:$("#rp").value.trim(),shop_name:$("#rs").value.trim(),shop_link:$("#rl").value.trim(),address:$("#ra").value.trim(),status:$("#rt2").value,verified:$("#rv").checked,referrer:$("#rr").value.trim()};
+ if(!b.name||!b.shop_name||!b.address)return toast("Name, shop name and address cannot be empty",1);
+ const bal=$("#rb").value.trim();if(bal!==""&&!/^-?\d+$/.test(bal))return toast("Balance must be a whole number",1);
+ if(bal!==""&&parseInt(bal,10)!==x.balance){if(!confirm(`Change ${x.name}'s balance from ${money(x.balance)} to ${money(parseInt(bal,10))}?`))return;b.balance=parseInt(bal,10);b.note=$("#rbn").value.trim().slice(0,20)}
+ const pw=$("#rw").value;if(pw){if(pw.length<6)return toast("The new password must be at least 6 characters",1);b.password=pw}
+ if(await run(()=>patch(`/admin/resellers/${id}/`,b),"Reseller saved")){$("#dlg").close();go("resellers")}}
 const rst=async(id,s)=>{if(await run(()=>post(`/admin/resellers/${id}/status/`,{status:s}),"Reseller "+s))go("resellers")};
 async function wst(id,a){if(a=="reject"&&!confirm("Reject and return the amount to the reseller's balance?"))return;
  if(await run(()=>post(`/admin/withdraws/${id}/${a}/`),a=="paid"?"Marked as paid":"Rejected, amount returned"))go("wd")}
